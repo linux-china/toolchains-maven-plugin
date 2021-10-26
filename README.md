@@ -21,7 +21,7 @@ Add following plugin configuration to your pom.xml:
     <plugin>
       <groupId>org.mvnsearch</groupId>
       <artifactId>toolchains-maven-plugin</artifactId>
-      <version>4.0.0-SNAPSHOT</version>
+      <version>4.0.0</version>
       <executions>
           <execution>
               <goals>
