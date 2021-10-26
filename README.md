@@ -49,3 +49,4 @@ $ mvn -Dtoolchain.skip -DskipTests package
 
 * Apache Maven Toolchains Plugin: https://maven.apache.org/plugins/maven-toolchains-plugin/
 * foojay DiscoAPI: https://api.foojay.io/swagger-ui/
+* Gradle Toolchains for JVM：https://docs.gradle.org/current/userguide/toolchains.html 
