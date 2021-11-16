@@ -87,7 +87,7 @@ public class FoojayService {
         }
         String archName = getArchName();
         String bitness = archName.equals("x32") ? "32" : "64";
-        String libcType = "";
+        String libcType;
         switch (os) {
             case "linux":
                 libcType = "glibc";
