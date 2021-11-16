@@ -87,9 +87,20 @@ public class FoojayService {
         }
         String archName = getArchName();
         String bitness = archName.equals("x32") ? "32" : "64";
-        String libcType = "libc";
-        if (os.equals("linux")) {
-            libcType = "glibc";
+        String libcType = "";
+        switch (os) {
+            case "linux":
+                libcType = "glibc";
+                break;
+            case "windows":
+                libcType = "c_std_lib";
+                break;
+            case "macos":
+                libcType = "libc";
+                break;
+            default:
+                libcType = "";
+                break;
         }
         String queryUrl = "https://api.foojay.io/disco/v2.0/packages?"
                 + "distro=" + vendor
