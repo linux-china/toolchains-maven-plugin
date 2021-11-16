@@ -87,6 +87,10 @@ public class FoojayService {
         }
         String archName = getArchName();
         String bitness = archName.equals("x32") ? "32" : "64";
+        String libcType = "libc";
+        if (os.equals("linux")) {
+            libcType = "glibc";
+        }
         String queryUrl = "https://api.foojay.io/disco/v2.0/packages?"
                 + "distro=" + vendor
                 + "&version=" + version
@@ -94,7 +98,8 @@ public class FoojayService {
                 + "&architecture=" + archName
                 + "&bitness=" + bitness
                 + "&archive_type=" + archiveType
-                + "&libc_type=libc&latest=overall&package_type=jdk&discovery_scope_id=directly_downloadable&match=any&javafx_bundled=false&directly_downloadable=true&release_status=ga";
+                + "&libc_type=" + libcType
+                + "&latest=overall&package_type=jdk&discovery_scope_id=directly_downloadable&match=any&javafx_bundled=false&directly_downloadable=true&release_status=ga";
         HttpGet request = new HttpGet(queryUrl);
         final HttpResponse response = httpClient.execute(request);
         if (response.getStatusLine().getStatusCode() == 200) {
