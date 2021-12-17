@@ -174,21 +174,31 @@ public class ToolchainMojo extends AbstractMojo {
         } catch (MisconfiguredToolchainException ex) {
             throw new MojoExecutionException("Misconfigured toolchains.", ex);
         }
-
-        //no toolchain found, and install JDK automatically
+        //no toolchain found
         if (type.equalsIgnoreCase("jdk")) {
             String version = params.get("version");
             String vendor = params.get("vendor");
+            ToolchainPrivate tc = null;
             if (vendor == null || vendor.isEmpty()) {
                 vendor = "oracle_open_jdk";
             }
-            final ToolchainPrivate tc = autoInstallJdk(version, vendor);
+            //jbang check first
+            if (vendor.equalsIgnoreCase("oracle_open_jdk")) {
+                final String userHome = System.getProperty("user.home");
+                File jbangHome = new File(userHome, ".jbang");
+                if (jbangHome.exists()) {
+                    tc = findJdkFromJbang(jbangHome, version, vendor);
+                }
+            }
+            //install JDK automatically
+            if (tc == null) {
+                tc = autoInstallJdk(version, vendor);
+            }
             if (tc != null) {
                 toolchainManagerPrivate.storeToolchainToBuildContext(tc, session);
                 return true;
             }
         }
-
         getLog().error("No toolchain " + ((typeFound == 0) ? "found" : ("matched from " + typeFound + " found"))
                 + " for type " + type);
 
@@ -212,24 +222,55 @@ public class ToolchainMojo extends AbstractMojo {
         try {
             File jdkHome = foojayService.downloadAndExtractJdk(version, vendor);
             if (jdkHome != null) {
-                final ToolchainPrivate javaToolChain = buildJdkToolchain(version, vendor, jdkHome.getAbsolutePath());
-                File toolchainsXml = new File(new File(System.getProperty("user.home")), ".m2/toolchains.xml");
-                Xpp3Dom toolchainsDom;
-                if (toolchainsXml.exists()) {
-                    toolchainsDom = Xpp3DomBuilder.build(new FileReader(toolchainsXml));
-                } else {
-                    toolchainsDom = new Xpp3Dom("toolchains");
-                }
-                toolchainsDom.addChild(jdkToolchainDom(version, vendor, jdkHome.getAbsolutePath()));
-                final FileWriter writer = new FileWriter(toolchainsXml);
-                Xpp3DomWriter.write(writer, toolchainsDom);
-                writer.close();
-                return javaToolChain;
+                return addJDKToToolchains(jdkHome, version, vendor);
             }
         } catch (Exception e) {
             getLog().error("Failed to download and install JDK", e);
         }
         return null;
+    }
+
+    private ToolchainPrivate findJdkFromJbang(File jbangHome, String version, String vendor) {
+        try {
+            String majorVersion = version;
+            if (majorVersion.contains(".")) {
+                if (version.startsWith("1.")) {
+                    majorVersion = "8";
+                } else {
+                    majorVersion = version.substring(0, version.indexOf("."));
+                }
+            }
+            File jdkHome = new File(jbangHome, "cache/jdks/" + majorVersion);
+            if (!jdkHome.exists()) {
+                System.out.println("jbang install " + majorVersion);
+                String jbangCmd = "bin/jbang";
+                if (System.getProperty("os.name").toLowerCase().contains("windows")) {
+                    jbangCmd = "bin/jbang.cmd";
+                }
+                final Process process = new ProcessBuilder(new File(jbangHome, jbangCmd).toString(), "jdk", "install", majorVersion).start();
+                process.waitFor();
+            }
+            return addJDKToToolchains(jdkHome, version, vendor);
+        } catch (Exception e) {
+            getLog().error("Failed to find JDK from jbang", e);
+        }
+        return null;
+    }
+
+    private ToolchainPrivate addJDKToToolchains(File jdkHome, String version, String vendor) throws Exception {
+        final ToolchainPrivate javaToolChain = buildJdkToolchain(version, vendor, jdkHome.getAbsolutePath());
+        File toolchainsXml = new File(new File(System.getProperty("user.home")), ".m2/toolchains.xml");
+        Xpp3Dom toolchainsDom;
+        if (toolchainsXml.exists()) {
+            toolchainsDom = Xpp3DomBuilder.build(new FileReader(toolchainsXml));
+        } else {
+            toolchainsDom = new Xpp3Dom("toolchains");
+        }
+        toolchainsDom.addChild(jdkToolchainDom(version, vendor, jdkHome.getAbsolutePath()));
+        final FileWriter writer = new FileWriter(toolchainsXml);
+        Xpp3DomWriter.write(writer, toolchainsDom);
+        writer.close();
+        return javaToolChain;
     }
 
     private ToolchainPrivate buildJdkToolchain(String version, String vendor, String jdkHome) {
