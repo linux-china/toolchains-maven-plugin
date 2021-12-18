@@ -18,7 +18,6 @@ Extend maven-toolchains-plugin to add JDK auto download and toolchains.xml manag
 Add following plugin configuration to your pom.xml:
 
 ```xml
-
 <build>
     <plugins>
         <plugin>
@@ -44,8 +43,8 @@ Add following plugin configuration to your pom.xml:
 </build>
 ```
 
-And you can try it quickly:
-
+And you can try it quickly: 
+     
 ```
 $ git clone https://github.com/linux-china/java17-demo.git
 $ cd java17-demo
@@ -57,10 +56,6 @@ $ mvn compile
 ```
 $ mvn -Dtoolchain.skip -DskipTests package
 ```
-
-# JBang integration
-
-If JBang installed, and maven-toolchains-plugin will use or install JDK from JBang.
 
 # References
 
