@@ -7,6 +7,7 @@ Extend maven-toolchains-plugin to add JDK auto download and toolchains.xml manag
 
 * JDK auto download by Foojay API support
 * Add new toolchain into toolchains.xml dynamically
+* JBang integration: add/auto-install JDK to toolchains.xml from JBang if jbang detected
 
 # Requirements
 
