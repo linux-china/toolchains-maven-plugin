@@ -150,35 +150,30 @@ public class ToolchainMojo extends AbstractMojo {
             throws MojoExecutionException {
         getLog().info("Required toolchain: " + getToolchainRequirementAsString(type, params));
         int typeFound = 0;
-
+        ToolchainPrivate toolchain = null;
         try {
             ToolchainPrivate[] tcs = getToolchains(type);
-
             for (ToolchainPrivate tc : tcs) {
                 if (!type.equals(tc.getType())) {
                     // useful because of MNG-5716
                     continue;
                 }
-
                 typeFound++;
-
                 if (tc.matchesRequirements(params)) {
                     getLog().info("Found matching toolchain for type " + type + ": " + tc);
-
                     // store matching toolchain to build context
                     toolchainManagerPrivate.storeToolchainToBuildContext(tc, session);
-
-                    return true;
+                    toolchain = tc;
+                    break;
                 }
             }
         } catch (MisconfiguredToolchainException ex) {
             throw new MojoExecutionException("Misconfigured toolchains.", ex);
         }
         //no toolchain found
-        if (type.equalsIgnoreCase("jdk")) {
+        if (toolchain == null && type.equalsIgnoreCase("jdk")) {
             String version = params.get("version");
             String vendor = params.get("vendor");
-            ToolchainPrivate tc = null;
             if (vendor == null || vendor.isEmpty()) {
                 vendor = "oracle_open_jdk";
             }
@@ -187,22 +182,22 @@ public class ToolchainMojo extends AbstractMojo {
                 final String userHome = System.getProperty("user.home");
                 File jbangHome = new File(userHome, ".jbang");
                 if (jbangHome.exists()) {
-                    tc = findJdkFromJbang(jbangHome, version, vendor);
+                    toolchain = findJdkFromJbang(jbangHome, version, vendor);
                 }
             }
             //install JDK automatically
-            if (tc == null) {
-                tc = autoInstallJdk(version, vendor);
-            }
-            if (tc != null) {
-                toolchainManagerPrivate.storeToolchainToBuildContext(tc, session);
-                return true;
+            if (toolchain == null) {
+                toolchain = autoInstallJdk(version, vendor);
             }
         }
-        getLog().error("No toolchain " + ((typeFound == 0) ? "found" : ("matched from " + typeFound + " found"))
-                + " for type " + type);
-
-        return false;
+        if (toolchain != null) {
+            toolchainManagerPrivate.storeToolchainToBuildContext(toolchain, session);
+            return true;
+        } else {
+            getLog().error("No toolchain " + ((typeFound == 0) ? "found" : ("matched from " + typeFound + " found"))
+                    + " for type " + type);
+            return false;
+        }
     }
 
     private ToolchainPrivate[] getToolchains(String type)
