@@ -55,7 +55,9 @@ $ mvn compile
 
 # GraalVM support
 
-Attention: vendor should be `graalvm_ce17` or `graalvm_ce11`, and version is GraalVM version(not Java version), such as `22.0.0.2` or `21.3.0`.
+* vendor should be `graalvm_ce17` or `graalvm_ce11`
+* version is GraalVM version(not Java version), such as `22.0.0.2` or `21.3.0`
+* GraalVM native-image component will be installed automatically
 
 ```xml
 
