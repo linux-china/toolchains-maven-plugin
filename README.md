@@ -19,6 +19,7 @@ Extend maven-toolchains-plugin to add JDK auto download and toolchains.xml manag
 Add following plugin configuration to your pom.xml:
 
 ```xml
+
 <build>
     <plugins>
         <plugin>
@@ -44,13 +45,41 @@ Add following plugin configuration to your pom.xml:
 </build>
 ```
 
-And you can try it quickly: 
-     
+And you can try it quickly:
+
 ```
 $ git clone https://github.com/linux-china/java17-demo.git
 $ cd java17-demo
 $ mvn compile
-```          
+```    
+
+# GraalVM support
+
+Attention: vendor should be `graalvm_ce17` or `graalvm_ce11`, and version is GraalVM version(not Java version), such as `22.0.0.2` or `21.3.0`.
+
+```xml
+
+<plugin>
+    <groupId>org.mvnsearch</groupId>
+    <artifactId>toolchains-maven-plugin</artifactId>
+    <version>4.1.0</version>
+    <executions>
+        <execution>
+            <goals>
+                <goal>toolchain</goal>
+            </goals>
+        </execution>
+    </executions>
+    <configuration>
+        <toolchains>
+            <jdk>
+                <version>22.0.0.2</version>
+                <vendor>graalvm_ce17</vendor>
+            </jdk>
+        </toolchains>
+    </configuration>
+</plugin>
+```
 
 # How to skip toolchains maven plugin on CI/CD platform?
 
