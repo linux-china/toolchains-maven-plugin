@@ -23,6 +23,8 @@ import org.codehaus.plexus.logging.console.ConsoleLogger;
 import java.io.File;
 import java.io.FileInputStream;
 import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -52,7 +54,7 @@ public class FoojayService {
         this.log = log;
     }
 
-    public File downloadAndExtractJdk(String version, String vendor) throws Exception {
+    public Path downloadAndExtractJdk(String version, String vendor) throws Exception {
         log.info("Begin to install JDK " + version);
         final String[] fileNameAndDownloadUrl = parseFileNameAndDownloadUrl(version, vendor);
         if (fileNameAndDownloadUrl == null) {
@@ -60,20 +62,21 @@ public class FoojayService {
         }
         String jdkFileName = fileNameAndDownloadUrl[0];
         String downloadUrl = fileNameAndDownloadUrl[1];
-        File jdksDir = new File(new File(System.getProperty("user.home")), ".m2/jdks");
-        if (!jdksDir.exists()) {
+        final Path userHome = Paths.get(System.getProperty("user.home"));
+        Path jdksDir = userHome.resolve(".m2").resolve("jdks");
+        if (!jdksDir.toFile().exists()) {
             //noinspection ResultOfMethodCallIgnored
-            jdksDir.mkdir();
+            jdksDir.toFile().mkdir();
         }
-        File jdkHome = downloadAndExtract(downloadUrl, jdkFileName, jdksDir);
-        if (new File(jdkHome, "Contents/Home").exists()) {  // mac tgz
-            jdkHome = new File(jdkHome, "Contents/Home");
+        Path jdkHome = downloadAndExtract(downloadUrl, jdkFileName, jdksDir);
+        if (jdkHome.resolve("Contents").resolve("Home").toFile().exists()) {  // mac tgz
+            jdkHome = jdkHome.resolve("Contents").resolve("Home");
         }
-        log.info("JDK installed: " + jdkHome.getAbsolutePath());
+        log.info("JDK installed: " + jdkHome.toAbsolutePath());
         if (vendor.contains("graalvm")) {
-            File guBin = new File(jdkHome, "bin/gu");
-            ProcessBuilder pb = new ProcessBuilder(guBin.getAbsolutePath(), "install", "native-image", "--ignore");
-            pb.environment().put("GRAALVM_HOME", jdkHome.getAbsolutePath());
+            Path guBin = jdkHome.resolve("bin").resolve("gu");
+            ProcessBuilder pb = new ProcessBuilder(guBin.toAbsolutePath().toString(), "install", "native-image", "--ignore");
+            pb.environment().put("GRAALVM_HOME", jdkHome.toAbsolutePath().toString());
             pb.start();
         }
         return jdkHome;
@@ -129,18 +132,18 @@ public class FoojayService {
         return null;
     }
 
-    private File downloadAndExtract(String link, String fileName, File destDir) throws Exception {
-        File destFile = new File(destDir, fileName);
+    private Path downloadAndExtract(String link, String fileName, Path destDir) throws Exception {
+        File destFile = destDir.resolve(fileName).toFile();
         if (!destFile.exists()) {
             log.info("Download " + fileName + " from " + link);
             FileUtils.copyURLToFile(new URL(link), destFile);
         }
         log.info("Extract " + fileName);
         String extractDir = getRootNameInArchive(destFile);
-        extractArchiveFile(destFile, destDir);
+        extractArchiveFile(destFile, destDir.toFile());
         //noinspection ResultOfMethodCallIgnored
         destFile.delete();
-        return new File(destDir, extractDir);
+        return destDir.resolve(extractDir);
     }
 
     private String getRootNameInArchive(File archiveFile) throws Exception {

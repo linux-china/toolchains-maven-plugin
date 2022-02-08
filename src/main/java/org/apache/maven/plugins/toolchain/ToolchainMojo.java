@@ -40,6 +40,8 @@ import org.codehaus.plexus.util.xml.Xpp3DomWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -179,9 +181,9 @@ public class ToolchainMojo extends AbstractMojo {
             }
             //jbang check first
             if (vendor.equalsIgnoreCase("oracle_open_jdk")) {
-                final String userHome = System.getProperty("user.home");
-                File jbangHome = new File(userHome, ".jbang");
-                if (jbangHome.exists()) {
+                final Path userHome = Paths.get(System.getProperty("user.home"));
+                Path jbangHome = userHome.resolve(".jbang");
+                if (jbangHome.toFile().exists()) {
                     toolchain = findJdkFromJbang(jbangHome, version, vendor);
                 }
             }
@@ -215,7 +217,7 @@ public class ToolchainMojo extends AbstractMojo {
     private ToolchainPrivate autoInstallJdk(String version, String vendor) {
         FoojayService foojayService = new FoojayService(getLog());
         try {
-            File jdkHome = foojayService.downloadAndExtractJdk(version, vendor);
+            Path jdkHome = foojayService.downloadAndExtractJdk(version, vendor);
             if (jdkHome != null) {
                 return addJDKToToolchains(jdkHome, version, vendor);
             }
@@ -225,7 +227,7 @@ public class ToolchainMojo extends AbstractMojo {
         return null;
     }
 
-    private ToolchainPrivate findJdkFromJbang(File jbangHome, String version, String vendor) {
+    private ToolchainPrivate findJdkFromJbang(Path jbangHome, String version, String vendor) {
         try {
             String majorVersion = version;
             if (majorVersion.contains(".")) {
@@ -235,14 +237,14 @@ public class ToolchainMojo extends AbstractMojo {
                     majorVersion = version.substring(0, version.indexOf("."));
                 }
             }
-            File jdkHome = new File(jbangHome, "cache/jdks/" + majorVersion);
-            if (!jdkHome.exists()) {
+            Path jdkHome = jbangHome.resolve("cache").resolve("jdks").resolve(majorVersion);
+            if (!jdkHome.toFile().exists()) {
                 System.out.println("jbang install " + majorVersion);
-                String jbangCmd = "bin/jbang";
+                String jbangCmd = jbangHome.resolve("bin").resolve("jbang").toAbsolutePath().toString();
                 if (System.getProperty("os.name").toLowerCase().contains("windows")) {
-                    jbangCmd = "bin/jbang.cmd";
+                    jbangCmd = jbangHome.resolve("bin").resolve("jbang.cmd").toAbsolutePath().toString();
                 }
-                final Process process = new ProcessBuilder(new File(jbangHome, jbangCmd).toString(), "jdk", "install", majorVersion).start();
+                final Process process = new ProcessBuilder(jbangCmd, "jdk", "install", majorVersion).start();
                 process.waitFor();
             }
             return addJDKToToolchains(jdkHome, version, vendor);
@@ -252,8 +254,8 @@ public class ToolchainMojo extends AbstractMojo {
         return null;
     }
 
-    private ToolchainPrivate addJDKToToolchains(File jdkHome, String version, String vendor) throws Exception {
-        final ToolchainPrivate javaToolChain = buildJdkToolchain(version, vendor, jdkHome.getAbsolutePath());
+    private ToolchainPrivate addJDKToToolchains(Path jdkHome, String version, String vendor) throws Exception {
+        final ToolchainPrivate javaToolChain = buildJdkToolchain(version, vendor, jdkHome.toAbsolutePath().toString());
         File toolchainsXml = new File(new File(System.getProperty("user.home")), ".m2/toolchains.xml");
         Xpp3Dom toolchainsDom;
         if (toolchainsXml.exists()) {
@@ -261,7 +263,7 @@ public class ToolchainMojo extends AbstractMojo {
         } else {
             toolchainsDom = new Xpp3Dom("toolchains");
         }
-        toolchainsDom.addChild(jdkToolchainDom(version, vendor, jdkHome.getAbsolutePath()));
+        toolchainsDom.addChild(jdkToolchainDom(version, vendor, jdkHome.toAbsolutePath().toString()));
         final FileWriter writer = new FileWriter(toolchainsXml);
         Xpp3DomWriter.write(writer, toolchainsDom);
         writer.close();
