@@ -25,7 +25,7 @@ Add following plugin configuration to your pom.xml:
         <plugin>
             <groupId>org.mvnsearch</groupId>
             <artifactId>toolchains-maven-plugin</artifactId>
-            <version>4.1.0</version>
+            <version>4.2.0</version>
             <executions>
                 <execution>
                     <goals>
@@ -64,7 +64,7 @@ $ mvn compile
 <plugin>
     <groupId>org.mvnsearch</groupId>
     <artifactId>toolchains-maven-plugin</artifactId>
-    <version>4.1.0</version>
+    <version>4.2.0</version>
     <executions>
         <execution>
             <goals>
@@ -75,7 +75,7 @@ $ mvn compile
     <configuration>
         <toolchains>
             <jdk>
-                <version>22.0.0.2</version>
+                <version>22.1.0</version>
                 <vendor>graalvm_ce17</vendor>
             </jdk>
         </toolchains>
