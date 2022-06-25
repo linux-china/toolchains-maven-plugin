@@ -54,9 +54,10 @@ import java.util.Properties;
  * @author mkleint
  */
 @Mojo(name = "toolchain", defaultPhase = LifecyclePhase.VALIDATE,
-        configurator = "toolchains-requirement-configurator")
+        configurator = "toolchains-requirement-configurator",
+        threadSafe = true)
 public class ToolchainMojo extends AbstractMojo {
-
+    private static final Object LOCK = new Object();
     /**
      *
      */
@@ -164,7 +165,9 @@ public class ToolchainMojo extends AbstractMojo {
                 if (tc.matchesRequirements(params)) {
                     getLog().info("Found matching toolchain for type " + type + ": " + tc);
                     // store matching toolchain to build context
-                    toolchainManagerPrivate.storeToolchainToBuildContext(tc, session);
+                    synchronized (LOCK) {
+                        toolchainManagerPrivate.storeToolchainToBuildContext(tc, session);
+                    }
                     toolchain = tc;
                     break;
                 }
