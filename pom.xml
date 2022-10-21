@@ -32,7 +32,7 @@ under the License.
 
     <groupId>org.mvnsearch</groupId>
     <artifactId>toolchains-maven-plugin</artifactId>
-    <version>4.2.0</version>
+    <version>4.3.0</version>
     <packaging>maven-plugin</packaging>
 
     <name>Apache Maven Toolchains Plugin with JDK auto download</name>
@@ -135,7 +135,7 @@ under the License.
                     <plugin>
                         <groupId>org.sonatype.plugins</groupId>
                         <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>1.6.8</version>
+                        <version>1.6.13</version>
                         <extensions>true</extensions>
                         <configuration>
                             <serverId>ossrh</serverId>
