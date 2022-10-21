@@ -8,12 +8,20 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.apache.commons.io.FileUtils;
+import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.Credentials;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.apache.maven.plugin.logging.Log;
+import org.apache.maven.settings.Proxy;
 import org.codehaus.plexus.archiver.AbstractUnArchiver;
 import org.codehaus.plexus.archiver.tar.TarGZipUnArchiver;
 import org.codehaus.plexus.archiver.zip.ZipUnArchiver;
@@ -46,12 +54,27 @@ import java.nio.file.Paths;
  */
 
 public class FoojayService {
-    private static final HttpClient httpClient = HttpClients.createDefault();
+    private final HttpClient httpClient;
 
     private final Log log;
 
-    public FoojayService(Log log) {
+    public FoojayService(Log log, Proxy proxy) {
         this.log = log;
+        // https://maven.apache.org/guides/mini/guide-proxies.html
+        if (proxy != null) {
+            final HttpClientBuilder builder = HttpClients.custom();
+            builder.setProxy(new HttpHost(proxy.getHost(), proxy.getPort(), proxy.getProtocol()));
+            if (proxy.getUsername() != null) {
+                Credentials credentials = new UsernamePasswordCredentials(proxy.getUsername(), proxy.getPassword());
+                AuthScope authScope = new AuthScope(proxy.getHost(), proxy.getPort());
+                CredentialsProvider credsProvider = new BasicCredentialsProvider();
+                credsProvider.setCredentials(authScope, credentials);
+                builder.setDefaultCredentialsProvider(credsProvider);
+            }
+            httpClient = builder.build();
+        } else {
+            httpClient = HttpClients.createDefault();
+        }
     }
 
     public Path downloadAndExtractJdk(String version, String vendor) throws Exception {
