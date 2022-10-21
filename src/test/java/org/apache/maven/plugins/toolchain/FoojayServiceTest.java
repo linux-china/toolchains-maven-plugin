@@ -6,7 +6,7 @@ import org.codehaus.plexus.logging.console.ConsoleLogger;
 import org.junit.Test;
 
 public class FoojayServiceTest {
-    FoojayService foojayService = new FoojayService(new DefaultLog(new ConsoleLogger()));
+    FoojayService foojayService = new FoojayService(new DefaultLog(new ConsoleLogger()),null);
 
     @Test
     public void testParseDownloadUrl() throws Exception {
