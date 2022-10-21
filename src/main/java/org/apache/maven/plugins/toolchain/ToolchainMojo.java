@@ -218,7 +218,7 @@ public class ToolchainMojo extends AbstractMojo {
      * @return toolchain
      */
     private ToolchainPrivate autoInstallJdk(String version, String vendor) {
-        FoojayService foojayService = new FoojayService(getLog());
+        FoojayService foojayService = new FoojayService(getLog(), session.getSettings().getActiveProxy());
         try {
             Path jdkHome = foojayService.downloadAndExtractJdk(version, vendor);
             if (jdkHome != null) {
