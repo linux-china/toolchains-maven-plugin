@@ -105,8 +105,8 @@ public class FoojayService {
                 libcType = "";
                 break;
         }
-        String queryUrl = "https://api.foojay.io/disco/v2.0/packages?"
-                + "distro=" + vendor
+        String queryUrl = "https://api.foojay.io/disco/v3.0/packages?"
+                + "distribution=" + vendor
                 + "&version=" + version
                 + "&operating_system=" + os
                 + "&architecture=" + archName
