@@ -101,7 +101,7 @@ $ mvn compile
  
 # How to get a list of all supported distributions and JDK versions?
 
-Please execute `curl https://api.foojay.io/disco/v3.0/distributions` to get all information.
+Please visit https://api.foojay.io/disco/v3.0/distributions to get all information.
 
 # How to skip toolchains maven plugin on CI/CD platform?
 
