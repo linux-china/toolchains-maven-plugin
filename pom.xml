@@ -32,7 +32,7 @@ under the License.
 
     <groupId>org.mvnsearch</groupId>
     <artifactId>toolchains-maven-plugin</artifactId>
-    <version>4.3.0</version>
+    <version>4.4.0</version>
     <packaging>maven-plugin</packaging>
 
     <name>Apache Maven Toolchains Plugin with JDK auto download</name>
