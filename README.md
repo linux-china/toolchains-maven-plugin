@@ -103,6 +103,9 @@ $ mvn compile
 
 Please visit https://api.foojay.io/disco/v3.0/distributions to get all information.
 
+* jdk vendor is the value of `api_parameter`
+* jdk version value could be any value in `versions` array
+
 # How to skip toolchains maven plugin on CI/CD platform?
 
 ```
