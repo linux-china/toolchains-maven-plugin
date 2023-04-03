@@ -242,11 +242,15 @@ public class ToolchainMojo extends AbstractMojo {
             }
             Path jdkHome = jbangHome.resolve("cache").resolve("jdks").resolve(majorVersion);
             if (!jdkHome.toFile().exists()) {
-                System.out.println("jbang install " + majorVersion);
-                String jbangCmd = jbangHome.resolve("bin").resolve("jbang").toAbsolutePath().toString();
+                Path jbangPath = jbangHome.resolve("bin").resolve("jbang");
                 if (System.getProperty("os.name").toLowerCase().contains("windows")) {
-                    jbangCmd = jbangHome.resolve("bin").resolve("jbang.cmd").toAbsolutePath().toString();
+                    jbangPath = jbangHome.resolve("bin").resolve("jbang.cmd");
                 }
+                if (!jbangPath.toFile().exists()) {
+                    return null;
+                }
+                System.out.println("jbang install " + majorVersion);
+                String jbangCmd = jbangPath.toAbsolutePath().toString();
                 final Process process = new ProcessBuilder(jbangCmd, "jdk", "install", majorVersion).start();
                 process.waitFor();
             }
