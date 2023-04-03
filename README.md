@@ -41,7 +41,7 @@ Add following plugin configuration to your pom.xml:
         <plugin>
             <groupId>org.mvnsearch</groupId>
             <artifactId>toolchains-maven-plugin</artifactId>
-            <version>4.3.0</version>
+            <version>4.4.0</version>
             <executions>
                 <execution>
                     <goals>
@@ -72,7 +72,7 @@ $ mvn compile
 # GraalVM support
 
 * vendor should be `graalvm_ce17` or `graalvm_ce11`
-* version is GraalVM version(not Java version), such as `22.0.0.2` or `21.3.0`
+* version is GraalVM version(not Java version), such as `22.3` or `22.3.0`
 * GraalVM native-image component will be installed automatically
 
 ```xml
@@ -80,7 +80,7 @@ $ mvn compile
 <plugin>
     <groupId>org.mvnsearch</groupId>
     <artifactId>toolchains-maven-plugin</artifactId>
-    <version>4.2.0</version>
+    <version>4.4.0</version>
     <executions>
         <execution>
             <goals>
@@ -91,7 +91,7 @@ $ mvn compile
     <configuration>
         <toolchains>
             <jdk>
-                <version>22.2</version>
+                <version>22.3</version>
                 <vendor>graalvm_ce17</vendor>
             </jdk>
         </toolchains>
