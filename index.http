@@ -1,0 +1,5 @@
+### get all distributions with versions
+GET https://api.foojay.io/disco/v3.0/distributions
+
+### get download information for a specific distribution and version
+GET https://api.foojay.io/disco/v3.0/packages?distro=graalvm_ce17&version=22.3&latest=overall&operating_system=linux&libc_type=&architecture=x64&bitness=64&archive_type=tar.gz&package_type=jdk&discovery_scope_id=directly_downloadable&match=any&javafx_bundled=false&directly_downloadable=true&release_status=ga
