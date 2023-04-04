@@ -23,7 +23,7 @@ Extend maven-toolchains-plugin to add JDK auto download and toolchains.xml manag
 
 * JDK auto download by Foojay API support, and install directory is `~/.m2/jdks`
 * Add new toolchain into toolchains.xml dynamically
-* JBang integration: add/auto-install JDK to toolchains.xml from JBang if jbang detected
+* JBang integration: add/auto-install JDK to toolchains.xml from [JBang](https://www.jbang.dev/) if jbang detected
 
 # Requirements
 
@@ -98,13 +98,17 @@ $ mvn compile
     </configuration>
 </plugin>
 ```
- 
+
 # How to get a list of all supported distributions and JDK versions?
 
 Please visit https://api.foojay.io/disco/v3.0/distributions to get all information.
 
 * jdk vendor is the value of `api_parameter`
 * jdk version value could be any value in `versions` array
+
+Or you can use [Maven toolchains CLI](https://github.com/linux-china/maven-toolchains-cli) to get all supported JDKs information.
+
+![Maven toolchains CLI](maven-toolchains-cli.png)
 
 # How to skip toolchains maven plugin on CI/CD platform?
 
@@ -115,6 +119,7 @@ $ mvn -Dtoolchain.skip -DskipTests package
 # References
 
 * Apache Maven Toolchains Plugin: https://maven.apache.org/plugins/maven-toolchains-plugin/
+* Maven toolchains CLI: https://github.com/linux-china/maven-toolchains-cli
 * Disco CLI: a command line interface for the foojay.io Disco API - https://github.com/HanSolo/discocli
 * foojay DiscoAPI: https://api.foojay.io/swagger-ui/
 * Gradle Toolchains for JVM：https://docs.gradle.org/current/userguide/toolchains.html 
