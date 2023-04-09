@@ -151,23 +151,23 @@ public class ToolchainMojo extends AbstractMojo {
 
     protected boolean selectToolchain(String type, Map<String, String> params)
             throws MojoExecutionException {
-        getLog().info("Required toolchain: " + getToolchainRequirementAsString(type, params));
+        String toolchainType = type;
+        if (toolchainType.equals("testJdk")) {
+            toolchainType = "jdk";
+        }
+        getLog().info("Required toolchain: " + getToolchainRequirementAsString(toolchainType, params));
         int typeFound = 0;
         ToolchainPrivate toolchain = null;
         try {
-            ToolchainPrivate[] tcs = getToolchains(type);
+            ToolchainPrivate[] tcs = getToolchains(toolchainType);
             for (ToolchainPrivate tc : tcs) {
-                if (!type.equals(tc.getType())) {
+                if (!toolchainType.equals(tc.getType())) {
                     // useful because of MNG-5716
                     continue;
                 }
                 typeFound++;
                 if (tc.matchesRequirements(params)) {
-                    getLog().info("Found matching toolchain for type " + type + ": " + tc);
-                    // store matching toolchain to build context
-                    synchronized (LOCK) {
-                        toolchainManagerPrivate.storeToolchainToBuildContext(tc, session);
-                    }
+                    getLog().info("Found matching toolchain for toolchainType " + toolchainType + ": " + tc);
                     toolchain = tc;
                     break;
                 }
@@ -176,7 +176,7 @@ public class ToolchainMojo extends AbstractMojo {
             throw new MojoExecutionException("Misconfigured toolchains.", ex);
         }
         //no toolchain found
-        if (toolchain == null && type.equalsIgnoreCase("jdk")) {
+        if (toolchain == null && toolchainType.equalsIgnoreCase("jdk")) {
             String version = params.get("version");
             String vendor = params.get("vendor");
             if (vendor == null || vendor.isEmpty()) {
@@ -194,13 +194,23 @@ public class ToolchainMojo extends AbstractMojo {
             if (toolchain == null) {
                 toolchain = autoInstallJdk(version, vendor);
             }
+            //attach new toolchain to session
+            if (toolchain != null) {
+                final Map<String, List<ToolchainModel>> requestToolchains = session.getRequest().getToolchains();
+                if (!requestToolchains.containsKey("jdk")) {
+                    requestToolchains.put("jdk", new ArrayList<ToolchainModel>());
+                }
+                requestToolchains.get("jdk").add(toolchain.getModel());
+            }
         }
         if (toolchain != null) {
-            toolchainManagerPrivate.storeToolchainToBuildContext(toolchain, session);
+            if (type.equals("jdk")) {
+                toolchainManagerPrivate.storeToolchainToBuildContext(toolchain, session);
+            }
             return true;
         } else {
             getLog().error("No toolchain " + ((typeFound == 0) ? "found" : ("matched from " + typeFound + " found"))
-                    + " for type " + type);
+                    + " for toolchainType " + toolchainType);
             return false;
         }
     }
