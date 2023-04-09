@@ -116,6 +116,68 @@ Or you can use [Maven toolchains CLI](https://github.com/linux-china/maven-toolc
 $ mvn -Dtoolchain.skip -DskipTests package
 ```
 
+# Different JDK for main/test code
+    
+Maven has support for using different source and target java versions for your project's main code and tests.
+You can add `testJdk` toolchain in `toolchains-maven-plugin` to specify the JDK for test code as below:
+
+```xml
+
+<plugins>
+    <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.11.0</version>
+        <executions>
+            <execution>
+                <id>default-testCompile</id>
+                <phase>test-compile</phase>
+                <goals>
+                    <goal>testCompile</goal>
+                </goals>
+                <configuration>
+                    <jdkToolchain>
+                        <version>18</version>
+                    </jdkToolchain>
+                </configuration>
+            </execution>
+        </executions>
+        <configuration>
+            <source>8</source>
+            <target>8</target>
+            <parameters>true</parameters>
+            <testSource>18</testSource>
+            <testTarget>18</testTarget>
+            <testRelease>18</testRelease>
+            <testCompilerArgument>--enable-preview</testCompilerArgument>
+        </configuration>
+    </plugin>
+
+    <plugin>
+        <groupId>org.mvnsearch</groupId>
+        <artifactId>toolchains-maven-plugin</artifactId>
+        <version>4.5.0</version>
+        <executions>
+            <execution>
+                <goals>
+                    <goal>toolchain</goal>
+                </goals>
+            </execution>
+        </executions>
+        <configuration>
+            <toolchains>
+                <jdk>
+                    <version>8</version>
+                </jdk>
+                <testJdk>
+                    <version>18</version>
+                </testJdk>
+            </toolchains>
+        </configuration>
+    </plugin>
+</plugins>
+```
+
 # References
 
 * Apache Maven Toolchains Plugin: https://maven.apache.org/plugins/maven-toolchains-plugin/
