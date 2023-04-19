@@ -31,6 +31,7 @@ import org.codehaus.plexus.logging.console.ConsoleLogger;
 import java.io.File;
 import java.io.FileInputStream;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -105,7 +106,7 @@ public class FoojayService {
     return jdkHome;
   }
 
-  public String[] parseFileNameAndDownloadUrl(String version, String vendor) throws Exception {
+  public String[] parseFileNameAndDownloadUrl(String version, String vendor) {
     String os = getOsName();
     String archiveType = "tar.gz";
     if (os.equals("windows")) {
@@ -176,9 +177,9 @@ public class FoojayService {
   private String getRootNameInArchive(File archiveFile) throws Exception {
     ArchiveInputStream archiveInputStream;
     if (archiveFile.getName().endsWith("tar.gz") || archiveFile.getName().endsWith("tgz")) {
-      archiveInputStream = new TarArchiveInputStream(new GzipCompressorInputStream(new FileInputStream(archiveFile)));
+      archiveInputStream = new TarArchiveInputStream(new GzipCompressorInputStream(Files.newInputStream(archiveFile.toPath())));
     } else {
-      archiveInputStream = new ZipArchiveInputStream((new FileInputStream(archiveFile)));
+      archiveInputStream = new ZipArchiveInputStream((Files.newInputStream(archiveFile.toPath())));
     }
     String name = archiveInputStream.getNextEntry().getName();
     while (name.startsWith(".") && name.length() < 4) {  // fix '.._' bug
