@@ -54,271 +54,292 @@ import java.util.Properties;
  * @author mkleint
  */
 @Mojo(name = "toolchain", defaultPhase = LifecyclePhase.VALIDATE,
-        configurator = "toolchains-requirement-configurator",
-        threadSafe = true)
+  configurator = "toolchains-requirement-configurator",
+  threadSafe = true)
 public class ToolchainMojo extends AbstractMojo {
-    private static final Object LOCK = new Object();
-    /**
-     *
-     */
-    @Component
-    private ToolchainManagerPrivate toolchainManagerPrivate;
+  private static final Object LOCK = new Object();
+  /**
+   *
+   */
+  @Component
+  private ToolchainManagerPrivate toolchainManagerPrivate;
 
-    /**
-     * The current build session instance. This is used for toolchain manager API calls.
-     */
-    @Parameter(defaultValue = "${session}", readonly = true, required = true)
-    private MavenSession session;
+  /**
+   * The current build session instance. This is used for toolchain manager API calls.
+   */
+  @Parameter(defaultValue = "${session}", readonly = true, required = true)
+  private MavenSession session;
 
-    /**
-     * Toolchains requirements, specified by one
-     * <pre>  &lt;toolchain-type&gt;
-     *    &lt;param&gt;expected value&lt;/param&gt;
-     *    ...
-     *  &lt;/toolchain-type&gt;</pre>
-     * element for each required toolchain.
-     */
-    @Parameter(required = true)
-    private ToolchainsRequirement toolchains;
-    /**
-     * skip toolchains or not, or use -Dtoolchain.skip
-     */
-    @Parameter(property = "skip", defaultValue = "false")
-    private boolean skip;
+  /**
+   * Toolchains requirements, specified by one
+   * <pre>  &lt;toolchain-type&gt;
+   *    &lt;param&gt;expected value&lt;/param&gt;
+   *    ...
+   *  &lt;/toolchain-type&gt;</pre>
+   * element for each required toolchain.
+   */
+  @Parameter(required = true)
+  private ToolchainsRequirement toolchains;
+  /**
+   * skip toolchains or not, or use -Dtoolchain.skip
+   */
+  @Parameter(property = "skip", defaultValue = "false")
+  private boolean skip;
 
-    @Override
-    public void execute()
-            throws MojoExecutionException, MojoFailureException {
-        final String toolchainsSkip = System.getProperty("toolchain.skip");
-        if (toolchainsSkip != null) {
-            skip = Boolean.parseBoolean(toolchainsSkip);
-        }
-        if (skip) {
-            getLog().info("toolchain plugin skipped.");
-            return;
-        }
-        if (toolchains == null) {
-            // should not happen since parameter is required...
-            getLog().warn("No toolchains requirements configured.");
-            return;
-        }
-
-        List<String> nonMatchedTypes = new ArrayList<>();
-
-        for (Map.Entry<String, Map<String, String>> entry : toolchains.getToolchains().entrySet()) {
-            String type = entry.getKey();
-
-            if (!selectToolchain(type, entry.getValue())) {
-                nonMatchedTypes.add(type);
-            }
-        }
-
-        if (!nonMatchedTypes.isEmpty()) {
-            // TODO add the default toolchain instance if defined??
-            StringBuilder buff = new StringBuilder();
-            buff.append("Cannot find matching toolchain definitions for the following toolchain types:");
-
-            for (String type : nonMatchedTypes) {
-                buff.append(System.lineSeparator());
-                buff.append(getToolchainRequirementAsString(type, toolchains.getParams(type)));
-            }
-
-            getLog().error(buff.toString());
-
-            throw new MojoFailureException(buff.toString() + System.lineSeparator()
-                    + "Please make sure you define the required toolchains in your ~/.m2/toolchains.xml file.");
-        }
+  @Override
+  public void execute()
+    throws MojoExecutionException, MojoFailureException {
+    final String toolchainsSkip = System.getProperty("toolchain.skip");
+    if (toolchainsSkip != null) {
+      skip = Boolean.parseBoolean(toolchainsSkip);
+    }
+    if (skip) {
+      getLog().info("toolchain plugin skipped.");
+      return;
+    }
+    if (toolchains == null) {
+      // should not happen since parameter is required...
+      getLog().warn("No toolchains requirements configured.");
+      return;
     }
 
-    protected String getToolchainRequirementAsString(String type, Map<String, String> params) {
-        StringBuilder buff = new StringBuilder();
+    List<String> nonMatchedTypes = new ArrayList<>();
 
-        buff.append(type).append(" [");
+    for (Map.Entry<String, Map<String, String>> entry : toolchains.getToolchains().entrySet()) {
+      String type = entry.getKey();
 
-        if (params.size() == 0) {
-            buff.append(" any");
+      if (!selectToolchain(type, entry.getValue())) {
+        nonMatchedTypes.add(type);
+      }
+    }
+
+    if (!nonMatchedTypes.isEmpty()) {
+      // TODO add the default toolchain instance if defined??
+      StringBuilder buff = new StringBuilder();
+      buff.append("Cannot find matching toolchain definitions for the following toolchain types:");
+
+      for (String type : nonMatchedTypes) {
+        buff.append(System.lineSeparator());
+        buff.append(getToolchainRequirementAsString(type, toolchains.getParams(type)));
+      }
+
+      getLog().error(buff.toString());
+
+      throw new MojoFailureException(buff.toString() + System.lineSeparator()
+        + "Please make sure you define the required toolchains in your ~/.m2/toolchains.xml file.");
+    }
+  }
+
+  protected String getToolchainRequirementAsString(String type, Map<String, String> params) {
+    StringBuilder buff = new StringBuilder();
+
+    buff.append(type).append(" [");
+
+    if (params.size() == 0) {
+      buff.append(" any");
+    } else {
+      for (Map.Entry<String, String> param : params.entrySet()) {
+        buff.append(" ").append(param.getKey()).append("='").append(param.getValue());
+        buff.append("'");
+      }
+    }
+
+    buff.append(" ]");
+
+    return buff.toString();
+  }
+
+  protected boolean selectToolchain(String type, Map<String, String> params)
+    throws MojoExecutionException {
+    String toolchainType = type;
+    if (toolchainType.equals("testJdk")) {
+      toolchainType = "jdk";
+    }
+    getLog().info("Required toolchain: " + getToolchainRequirementAsString(toolchainType, params));
+    int typeFound = 0;
+    ToolchainPrivate toolchain = null;
+    try {
+      ToolchainPrivate[] tcs = getToolchains(toolchainType);
+      for (ToolchainPrivate tc : tcs) {
+        if (!toolchainType.equals(tc.getType())) {
+          // useful because of MNG-5716
+          continue;
+        }
+        typeFound++;
+        if (tc.matchesRequirements(params)) {
+          getLog().info("Found matching toolchain for toolchainType " + toolchainType + ": " + tc);
+          toolchain = tc;
+          break;
+        }
+      }
+    } catch (MisconfiguredToolchainException ex) {
+      throw new MojoExecutionException("Misconfigured toolchains.", ex);
+    }
+    //no toolchain found
+    if (toolchain == null && toolchainType.equalsIgnoreCase("jdk")) {
+      String version = params.get("version");
+      String vendor = params.get("vendor");
+      if (vendor == null || vendor.isEmpty()) {
+        vendor = "oracle_open_jdk";
+      }
+      //sdkman check first
+      if (vendor.equalsIgnoreCase("oracle_open_jdk")) {
+        final Path userHome = Paths.get(System.getProperty("user.home"));
+        Path sdkmanJavaDirs = userHome.resolve(".sdkman").resolve("candidates").resolve("java");
+        if (sdkmanJavaDirs.toFile().exists()) {
+          toolchain = findJdkFromSdkman(sdkmanJavaDirs, version);
+        }
+      }
+      //jbang check
+      if (toolchain==null && vendor.equalsIgnoreCase("oracle_open_jdk")) {
+        final Path userHome = Paths.get(System.getProperty("user.home"));
+        Path jbangHome = userHome.resolve(".jbang");
+        if (jbangHome.toFile().exists()) {
+          toolchain = findJdkFromJbang(jbangHome, version, vendor);
+        }
+      }
+
+      //install JDK automatically
+      if (toolchain == null) {
+        toolchain = autoInstallJdk(version, vendor);
+      }
+      //attach new toolchain to session
+      if (toolchain != null) {
+        final Map<String, List<ToolchainModel>> requestToolchains = session.getRequest().getToolchains();
+        if (!requestToolchains.containsKey("jdk")) {
+          requestToolchains.put("jdk", new ArrayList<ToolchainModel>());
+        }
+        requestToolchains.get("jdk").add(toolchain.getModel());
+      }
+    }
+    if (toolchain != null) {
+      if (type.equals("jdk")) {
+        toolchainManagerPrivate.storeToolchainToBuildContext(toolchain, session);
+      }
+      return true;
+    } else {
+      getLog().error("No toolchain " + ((typeFound == 0) ? "found" : ("matched from " + typeFound + " found"))
+        + " for toolchainType " + toolchainType);
+      return false;
+    }
+  }
+
+  private ToolchainPrivate[] getToolchains(String type)
+    throws MojoExecutionException, MisconfiguredToolchainException {
+    return toolchainManagerPrivate.getToolchainsForType(type, session);
+  }
+
+  /**
+   * install JDK and modify toolchains.xml automatically
+   *
+   * @param version version
+   * @param vendor  vendor
+   * @return toolchain
+   */
+  private ToolchainPrivate autoInstallJdk(String version, String vendor) {
+    FoojayService foojayService = new FoojayService(getLog(), session.getSettings().getActiveProxy());
+    try {
+      Path jdkHome = foojayService.downloadAndExtractJdk(version, vendor);
+      if (jdkHome != null) {
+        return addJDKToToolchains(jdkHome, version, vendor);
+      }
+    } catch (Exception e) {
+      getLog().error("Failed to download and install JDK", e);
+    }
+    return null;
+  }
+
+  private ToolchainPrivate findJdkFromJbang(Path jbangHome, String version, String vendor) {
+    try {
+      String majorVersion = version;
+      if (majorVersion.contains(".")) {
+        if (version.startsWith("1.")) {
+          majorVersion = "8";
         } else {
-            for (Map.Entry<String, String> param : params.entrySet()) {
-                buff.append(" ").append(param.getKey()).append("='").append(param.getValue());
-                buff.append("'");
-            }
+          majorVersion = version.substring(0, version.indexOf("."));
         }
-
-        buff.append(" ]");
-
-        return buff.toString();
-    }
-
-    protected boolean selectToolchain(String type, Map<String, String> params)
-            throws MojoExecutionException {
-        String toolchainType = type;
-        if (toolchainType.equals("testJdk")) {
-            toolchainType = "jdk";
+      }
+      Path jdkHome = jbangHome.resolve("cache").resolve("jdks").resolve(majorVersion);
+      if (!jdkHome.toFile().exists()) {
+        Path jbangPath = jbangHome.resolve("bin").resolve("jbang");
+        if (System.getProperty("os.name").toLowerCase().contains("windows")) {
+          jbangPath = jbangHome.resolve("bin").resolve("jbang.cmd");
         }
-        getLog().info("Required toolchain: " + getToolchainRequirementAsString(toolchainType, params));
-        int typeFound = 0;
-        ToolchainPrivate toolchain = null;
-        try {
-            ToolchainPrivate[] tcs = getToolchains(toolchainType);
-            for (ToolchainPrivate tc : tcs) {
-                if (!toolchainType.equals(tc.getType())) {
-                    // useful because of MNG-5716
-                    continue;
-                }
-                typeFound++;
-                if (tc.matchesRequirements(params)) {
-                    getLog().info("Found matching toolchain for toolchainType " + toolchainType + ": " + tc);
-                    toolchain = tc;
-                    break;
-                }
-            }
-        } catch (MisconfiguredToolchainException ex) {
-            throw new MojoExecutionException("Misconfigured toolchains.", ex);
+        if (!jbangPath.toFile().exists()) {
+          return null;
         }
-        //no toolchain found
-        if (toolchain == null && toolchainType.equalsIgnoreCase("jdk")) {
-            String version = params.get("version");
-            String vendor = params.get("vendor");
-            if (vendor == null || vendor.isEmpty()) {
-                vendor = "oracle_open_jdk";
-            }
-            //jbang check first
-            if (vendor.equalsIgnoreCase("oracle_open_jdk")) {
-                final Path userHome = Paths.get(System.getProperty("user.home"));
-                Path jbangHome = userHome.resolve(".jbang");
-                if (jbangHome.toFile().exists()) {
-                    toolchain = findJdkFromJbang(jbangHome, version, vendor);
-                }
-            }
-            //install JDK automatically
-            if (toolchain == null) {
-                toolchain = autoInstallJdk(version, vendor);
-            }
-            //attach new toolchain to session
-            if (toolchain != null) {
-                final Map<String, List<ToolchainModel>> requestToolchains = session.getRequest().getToolchains();
-                if (!requestToolchains.containsKey("jdk")) {
-                    requestToolchains.put("jdk", new ArrayList<ToolchainModel>());
-                }
-                requestToolchains.get("jdk").add(toolchain.getModel());
-            }
-        }
-        if (toolchain != null) {
-            if (type.equals("jdk")) {
-                toolchainManagerPrivate.storeToolchainToBuildContext(toolchain, session);
-            }
-            return true;
-        } else {
-            getLog().error("No toolchain " + ((typeFound == 0) ? "found" : ("matched from " + typeFound + " found"))
-                    + " for toolchainType " + toolchainType);
-            return false;
-        }
+        System.out.println("jbang install " + majorVersion);
+        String jbangCmd = jbangPath.toAbsolutePath().toString();
+        final Process process = new ProcessBuilder(jbangCmd, "jdk", "install", majorVersion).start();
+        process.waitFor();
+      }
+      return addJDKToToolchains(jdkHome, version, vendor);
+    } catch (Exception e) {
+      getLog().error("Failed to find JDK from jbang", e);
     }
+    return null;
+  }
 
-    private ToolchainPrivate[] getToolchains(String type)
-            throws MojoExecutionException, MisconfiguredToolchainException {
-        return toolchainManagerPrivate.getToolchainsForType(type, session);
+  private ToolchainPrivate findJdkFromSdkman(Path sdkmanJavaDirs, String version) {
+    try {
+      Path jdkHome = sdkmanJavaDirs.resolve(version);
+      if (jdkHome.toFile().exists()) {
+        return addJDKToToolchains(jdkHome, version, "");
+      }
+    } catch (Exception e) {
+      getLog().error("Failed to find JDK from sdkman, please use `sdk install " + version + "` to install JDK", e);
     }
+    return null;
+  }
 
-    /**
-     * install JDK and modify toolchains.xml automatically
-     *
-     * @param version version
-     * @param vendor  vendor
-     * @return toolchain
-     */
-    private ToolchainPrivate autoInstallJdk(String version, String vendor) {
-        FoojayService foojayService = new FoojayService(getLog(), session.getSettings().getActiveProxy());
-        try {
-            Path jdkHome = foojayService.downloadAndExtractJdk(version, vendor);
-            if (jdkHome != null) {
-                return addJDKToToolchains(jdkHome, version, vendor);
-            }
-        } catch (Exception e) {
-            getLog().error("Failed to download and install JDK", e);
-        }
-        return null;
+  private ToolchainPrivate addJDKToToolchains(Path jdkHome, String version, String vendor) throws Exception {
+    final ToolchainPrivate javaToolChain = buildJdkToolchain(version, vendor, jdkHome.toAbsolutePath().toString());
+    File toolchainsXml = new File(new File(System.getProperty("user.home")), ".m2/toolchains.xml");
+    Xpp3Dom toolchainsDom;
+    if (toolchainsXml.exists()) {
+      toolchainsDom = Xpp3DomBuilder.build(new FileReader(toolchainsXml));
+    } else {
+      toolchainsDom = new Xpp3Dom("toolchains");
     }
+    toolchainsDom.addChild(jdkToolchainDom(version, vendor, jdkHome.toAbsolutePath().toString()));
+    final FileWriter writer = new FileWriter(toolchainsXml);
+    Xpp3DomWriter.write(writer, toolchainsDom);
+    writer.close();
+    return javaToolChain;
+  }
 
-    private ToolchainPrivate findJdkFromJbang(Path jbangHome, String version, String vendor) {
-        try {
-            String majorVersion = version;
-            if (majorVersion.contains(".")) {
-                if (version.startsWith("1.")) {
-                    majorVersion = "8";
-                } else {
-                    majorVersion = version.substring(0, version.indexOf("."));
-                }
-            }
-            Path jdkHome = jbangHome.resolve("cache").resolve("jdks").resolve(majorVersion);
-            if (!jdkHome.toFile().exists()) {
-                Path jbangPath = jbangHome.resolve("bin").resolve("jbang");
-                if (System.getProperty("os.name").toLowerCase().contains("windows")) {
-                    jbangPath = jbangHome.resolve("bin").resolve("jbang.cmd");
-                }
-                if (!jbangPath.toFile().exists()) {
-                    return null;
-                }
-                System.out.println("jbang install " + majorVersion);
-                String jbangCmd = jbangPath.toAbsolutePath().toString();
-                final Process process = new ProcessBuilder(jbangCmd, "jdk", "install", majorVersion).start();
-                process.waitFor();
-            }
-            return addJDKToToolchains(jdkHome, version, vendor);
-        } catch (Exception e) {
-            getLog().error("Failed to find JDK from jbang", e);
-        }
-        return null;
-    }
+  private ToolchainPrivate buildJdkToolchain(String version, String vendor, String jdkHome) {
+    ToolchainModel toolchainModel = new ToolchainModel();
+    toolchainModel.setType("jdk");
+    Properties provides = new Properties();
+    provides.setProperty("version", version);
+    provides.setProperty("vendor", vendor);
+    toolchainModel.setProvides(provides);
+    Xpp3Dom configuration = new Xpp3Dom("configuration");
+    configuration.addChild(createElement("jdkHome", jdkHome));
+    toolchainModel.setConfiguration(configuration);
+    DefaultJavaToolChain javaToolChain = new DefaultJavaToolChain(toolchainModel, new ConsoleLogger());
+    javaToolChain.setJavaHome(jdkHome);
+    return javaToolChain;
+  }
 
-    private ToolchainPrivate addJDKToToolchains(Path jdkHome, String version, String vendor) throws Exception {
-        final ToolchainPrivate javaToolChain = buildJdkToolchain(version, vendor, jdkHome.toAbsolutePath().toString());
-        File toolchainsXml = new File(new File(System.getProperty("user.home")), ".m2/toolchains.xml");
-        Xpp3Dom toolchainsDom;
-        if (toolchainsXml.exists()) {
-            toolchainsDom = Xpp3DomBuilder.build(new FileReader(toolchainsXml));
-        } else {
-            toolchainsDom = new Xpp3Dom("toolchains");
-        }
-        toolchainsDom.addChild(jdkToolchainDom(version, vendor, jdkHome.toAbsolutePath().toString()));
-        final FileWriter writer = new FileWriter(toolchainsXml);
-        Xpp3DomWriter.write(writer, toolchainsDom);
-        writer.close();
-        return javaToolChain;
-    }
+  private Xpp3Dom jdkToolchainDom(String version, String vendor, String jdkHome) {
+    Xpp3Dom toolchainDom = new Xpp3Dom("toolchain");
+    toolchainDom.addChild(createElement("type", "jdk"));
+    Xpp3Dom providesDom = new Xpp3Dom("provides");
+    providesDom.addChild(createElement("version", version));
+    providesDom.addChild(createElement("vendor", vendor));
+    Xpp3Dom configurationDom = new Xpp3Dom("configuration");
+    configurationDom.addChild(createElement("jdkHome", jdkHome));
+    toolchainDom.addChild(providesDom);
+    toolchainDom.addChild(configurationDom);
+    return toolchainDom;
+  }
 
-    private ToolchainPrivate buildJdkToolchain(String version, String vendor, String jdkHome) {
-        ToolchainModel toolchainModel = new ToolchainModel();
-        toolchainModel.setType("jdk");
-        Properties provides = new Properties();
-        provides.setProperty("version", version);
-        provides.setProperty("vendor", vendor);
-        toolchainModel.setProvides(provides);
-        Xpp3Dom configuration = new Xpp3Dom("configuration");
-        configuration.addChild(createElement("jdkHome", jdkHome));
-        toolchainModel.setConfiguration(configuration);
-        DefaultJavaToolChain javaToolChain = new DefaultJavaToolChain(toolchainModel, new ConsoleLogger());
-        javaToolChain.setJavaHome(jdkHome);
-        return javaToolChain;
-    }
-
-    private Xpp3Dom jdkToolchainDom(String version, String vendor, String jdkHome) {
-        Xpp3Dom toolchainDom = new Xpp3Dom("toolchain");
-        toolchainDom.addChild(createElement("type", "jdk"));
-        Xpp3Dom providesDom = new Xpp3Dom("provides");
-        providesDom.addChild(createElement("version", version));
-        providesDom.addChild(createElement("vendor", vendor));
-        Xpp3Dom configurationDom = new Xpp3Dom("configuration");
-        configurationDom.addChild(createElement("jdkHome", jdkHome));
-        toolchainDom.addChild(providesDom);
-        toolchainDom.addChild(configurationDom);
-        return toolchainDom;
-    }
-
-    private Xpp3Dom createElement(String name, String value) {
-        Xpp3Dom dom = new Xpp3Dom(name);
-        dom.setValue(value);
-        return dom;
-    }
+  private Xpp3Dom createElement(String name, String value) {
+    Xpp3Dom dom = new Xpp3Dom(name);
+    dom.setValue(value);
+    return dom;
+  }
 
 }
