@@ -23,6 +23,7 @@ Extend maven-toolchains-plugin to add JDK auto download and toolchains.xml manag
 
 * JDK auto download by Foojay API support, and install directory is `~/.m2/jdks`
 * Add new toolchain into toolchains.xml dynamically
+* SDKMAN integration: add JDK to toolchains.xml from [SDKMAN](https://sdkman.io/) if SDKMAN detected
 * JBang integration: add/auto-install JDK to toolchains.xml from [JBang](https://www.jbang.dev/) if jbang detected
 
 # Requirements
@@ -67,7 +68,7 @@ And you can try it quickly:
 $ git clone https://github.com/linux-china/java17-demo.git
 $ cd java17-demo
 $ mvn compile
-```    
+```
 
 # GraalVM support
 
@@ -117,7 +118,7 @@ $ mvn -Dtoolchain.skip -DskipTests package
 ```
 
 # Different JDK for main/test code
-    
+
 Maven has support for using different source and target java versions for your project's main code and tests.
 You can add `testJdk` toolchain in `toolchains-maven-plugin` to specify the JDK for test code as below:
 
@@ -184,4 +185,7 @@ You can add `testJdk` toolchain in `toolchains-maven-plugin` to specify the JDK 
 * Maven toolchains CLI: https://github.com/linux-china/maven-toolchains-cli
 * Disco CLI: a command line interface for the foojay.io Disco API - https://github.com/HanSolo/discocli
 * foojay DiscoAPI: https://api.foojay.io/swagger-ui/
-* Gradle Toolchains for JVM：https://docs.gradle.org/current/userguide/toolchains.html 
+* Gradle Toolchains for JVM：https://docs.gradle.org/current/userguide/toolchains.html
+
+
+sdkman support: sdk install java 17.0.7-graalce
